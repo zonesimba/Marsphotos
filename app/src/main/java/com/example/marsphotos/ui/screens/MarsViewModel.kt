@@ -20,9 +20,13 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.example.marsphotos.model.MarsPhoto
+import com.example.marsphotos.network.MarsApi
 import com.example.marsphotos.network.MarsApiService
 import kotlinx.coroutines.launch
+import retrofit2.HttpException
 import java.io.IOException
+
 sealed interface MarsUiState {
     data class Success(val photos: String) : MarsUiState
     object Error : MarsUiState
@@ -30,36 +34,26 @@ sealed interface MarsUiState {
 }
 
 class MarsViewModel : ViewModel() {
-    /** The mutable State that stores the status of the most recent request */
     var marsUiState: MarsUiState by mutableStateOf(MarsUiState.Loading)
         private set
 
-
-    /**
-     * Call getMarsPhotos() on init so we can display status immediately.
-     */
     init {
         getMarsPhotos()
     }
 
-    /**
-     * Gets Mars photos information from the Mars API Retrofit service and updates the
-     * [MarsPhoto] [List] [MutableList].
-     */
-    private fun getMarsPhotos() {
+    fun getMarsPhotos() {
         viewModelScope.launch {
+            marsUiState = MarsUiState.Loading
             marsUiState = try {
                 val listResult = MarsApiService.MarsApi.retrofitService.getPhotos()
-                MarsUiState.Success(listResult)
+                MarsUiState.Success(
+                    "Success: ${listResult.size} Mars photos retrieved"
+                )
             } catch (e: IOException) {
+                MarsUiState.Error
+            } catch (e: HttpException) {
                 MarsUiState.Error
             }
         }
-    }
-    // No need to copy over
-    sealed interface MarsUiState {
-        data class Success : MarsUiState
-        data class Loading : MarsUiState
-        data class Error : MarsUiState
     }
 }
